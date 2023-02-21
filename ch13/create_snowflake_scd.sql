@@ -227,12 +227,6 @@ SET   dc.account_balance_usd  = sc.account_balance_usd
 	, dc.diff_hash = sc.diff_hash
 ;
 
-SELECT * FROM strm_dim_customer_t2
-WHERE TRUE 
-and customer_id = 418356;
-
-
-
 
 --load type 2
 --step 2 (update metadata in updated t.2 attributes)
