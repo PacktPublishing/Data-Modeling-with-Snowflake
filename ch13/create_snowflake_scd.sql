@@ -85,6 +85,11 @@ FROM operations.customer SAMPLE (1000 ROWS)
 * Type 1 
 */
 
+
+--reset source table
+CREATE OR REPLACE TABLE src_customer CLONE src_customer_bak;
+
+
 --create base table
 CREATE OR REPLACE TABLE dim_customer_t1
 (
