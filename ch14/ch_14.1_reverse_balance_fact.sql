@@ -194,7 +194,7 @@ SELECT
 	, ship_mode
 	, COMMENT
 	, current_timestamp()
-	, 'new sale'
+	, 'initial'
 FROM source_system_lineitem src 
 INNER JOIN new_not_existing ne ON src.sales_order_id = ne.sales_order_id
 UNION ALL 
