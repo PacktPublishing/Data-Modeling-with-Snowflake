@@ -511,3 +511,69 @@ LEFT JOIN weapon w USING (weapon_id)
 ;
 
 
+
+
+---------------------------------------------------------------------------------------------------------------------
+-- Create semi-structured objects from relational data 
+---------------------------------------------------------------------------------------------------------------------
+
+
+-- use OBJECT_CONSTRUCT to create nested objects 
+SELECT OBJECT_CONSTRUCT ( 
+		  'name',  p.NAME 
+		, 'nickname',  p.nickname
+		, 'ship', OBJECT_CONSTRUCT( 'name', s.name
+								   ,'type', s.type)
+	  )
+FROM pirate p 
+INNER JOIN ship s USING (ship_id)
+WHERE TRUE 
+AND pirate_id = 1
+;
+
+
+-- use ARRAY_AGG to create arrays of objects within objects 
+SELECT DISTINCT OBJECT_CONSTRUCT (
+      'name',  p.name
+    , 'nickname',  p.nickname
+    , 'weapons', ARRAY_AGG(w.name) 
+                 WITHIN GROUP(ORDER BY p.name) 
+                 OVER (PARTITION BY p.name ) 
+) AS crew
+FROM pirate p 
+LEFT JOIN pirate_weapons pw USING (pirate_id) 
+LEFT JOIN weapon w USING (weapon_id)
+WHERE TRUE 
+AND crew_of IS NOT NULL; 
+
+
+
+-- use subqueries to return objects as values for other objects
+-- this query combines the results of the previous two
+SELECT OBJECT_CONSTRUCT ( 'name',  p.NAME 
+		, 'nickname',  p.nickname
+		, 'ship', OBJECT_CONSTRUCT('name', s.name
+								, 'type', s.type)
+		, 'crew', (SELECT  ARRAY_AGG ( DISTINCT crew ) 
+					 FROM (
+						SELECT DISTINCT OBJECT_CONSTRUCT (
+						      'name',  p.name
+						    , 'nickname',  p.nickname
+						    , 'weapons', ARRAY_AGG(w.name) 
+						                 WITHIN GROUP(ORDER BY p.name) 
+						                 OVER (PARTITION BY p.name ) 
+						) AS crew
+						FROM pirate p 
+						LEFT JOIN pirate_weapons pw USING (pirate_id) 
+						LEFT JOIN weapon w USING (weapon_id)
+						WHERE TRUE 
+						AND crew_of IS NOT NULL			
+					 ) 
+		           )
+	  ) as pirate_semi
+FROM pirate p 
+INNER JOIN ship s USING (ship_id)
+WHERE TRUE 
+AND crew_of IS NULL
+;
+		
