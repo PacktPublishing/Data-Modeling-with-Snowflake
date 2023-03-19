@@ -1,11 +1,3 @@
-/*
- * 
- * Demystifying Data Vault
- * 
- * 
- */
-
-
 --------------------------------------------------------------------
 -- setting up environments
 --------------------------------------------------------------------
@@ -25,6 +17,7 @@ USE SCHEMA L0_src;
 
 CREATE OR REPLACE TABLE src_nation
 (
+ iso2_code	 varchar (2)  NOT NULL,
  n_nationkey number(38,0) NOT NULL,
  n_name      varchar(25)  NOT NULL,
  n_regionkey number(38,0) NOT NULL,
@@ -33,15 +26,51 @@ CREATE OR REPLACE TABLE src_nation
  rec_src     varchar NOT NULL,
  
  CONSTRAINT pk_src_nation PRIMARY KEY ( n_nationkey ),
- CONSTRAINT ak_src_nation UNIQUE ( n_name )
+ CONSTRAINT ak_src_nation_n_name UNIQUE ( n_name ),
+ CONSTRAINT ak_src_nation_iso2_code UNIQUE ( iso2_code )
  )
- COMMENT = 'ISO 2-letter country codes'
+ COMMENT = 'ISO 3166 2-letter country codes'
 AS 
 SELECT *
      , CURRENT_TIMESTAMP()        
      , 'sys 1'    
-  FROM snowflake_sample_data.tpch_sf10.nation
+FROM (     
+		SELECT v.code, n.*  
+		FROM snowflake_sample_data.tpch_sf10.nation n
+		INNER JOIN (
+		SELECT $1 id, $2 code FROM VALUES  
+		(0, 'AL'),
+		(1, 'AR'),
+		(2, 'BR'),
+		(3, 'CA'),
+		(4, 'EG'),
+		(5, 'ET'),
+		(6, 'FR'),
+		(7, 'DE'),
+		(8, 'IN'),
+		(9, 'ID'),
+		(10, 'IR'),
+		(11, 'IQ'),
+		(12, 'JP'),
+		(13, 'JO'),
+		(14, 'KE'),
+		(15, 'MA'),
+		(16, 'MZ'),
+		(17, 'PE'),
+		(18, 'CN'),
+		(19, 'RO'),
+		(20, 'SA'),
+		(21, 'VN'),
+		(22, 'RU'),
+		(23, 'GB'),
+		(24, 'US')
+		) v
+		ON n.n_nationkey = v.id
+)
 ;
+
+
+
 
   
 CREATE OR REPLACE TABLE src_customer
@@ -312,23 +341,26 @@ CREATE OR REPLACE TABLE lnk_customer_order
 
 CREATE OR REPLACE TABLE ref_nation 
 ( 
-  nation_id             number 
-, region_id             number 
-, load_dts              timestamp_ntz   NOT NULL
-, rec_src               varchar         NOT NULL
+  iso2_code	            varchar (2)  NOT NULL
+, nation_id             number 		 NOT NULL
+, region_id             number 		 NOT NULL
 , n_name                varchar
 , n_comment             varchar
+, load_dts              timestamp_ntz   NOT NULL
+, rec_src               varchar         NOT NULL
 
 , CONSTRAINT pk_ref_nation PRIMARY KEY (nation_id)   
 )
 AS 
-SELECT n_nationkey
+SELECT 
+	   iso2_code
+	 , n_nationkey
      , n_regionkey
-     , load_dts
-     , rec_src
      , n_name
      , n_comment
-  FROM L0_src.src_nation;
+     , load_dts
+     , rec_src     
+FROM L0_src.src_nation;
   
   
   
@@ -510,6 +542,8 @@ SELECT 'sat_customer', count(1) FROM sat_customer
 UNION ALL
 SELECT 'sat_order', count(1) FROM sat_order
 UNION ALL
+SELECT 'ref_nation' src, count(1) cnt FROM ref_nation
+UNION ALL 
 SELECT 'lnk_customer_order', count(1) FROM lnk_customer_order
 UNION ALL
 SELECT 'L0_src.src_customer_strm_outbound', count(1) FROM l0_src.src_customer_strm_outbound
@@ -524,6 +558,9 @@ EXECUTE TASK  order_strm_tsk ;
 -- load more source records to repeat the process
 EXECUTE  TASK  l0_src.load_daily_init;  
 
+SELECT * FROM REF_NATION ;
+
+SELECT * FROM l0_src.src_NATION ;
 
   SELECT *
   FROM table(information_schema.task_history())
