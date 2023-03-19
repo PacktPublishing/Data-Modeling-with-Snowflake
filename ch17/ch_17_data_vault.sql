@@ -9,11 +9,10 @@ CREATE OR REPLACE SCHEMA L1_rdv COMMENT = 'Schema for Raw Vault objects';
 
 
 --------------------------------------------------------------------
--- setting up the landing area
+-- set up the landing area
 --------------------------------------------------------------------
 
 USE SCHEMA L0_src;
-
 
 CREATE OR REPLACE TABLE src_nation
 (
@@ -78,7 +77,7 @@ CREATE OR REPLACE TABLE src_customer
  c_custkey    number(38,0) NOT NULL,
  c_name       varchar(25),
  c_address    varchar(40),
- c_nationkey  number(38,0) NOT NULL,
+ iso2_code	  varchar (2)  NOT NULL,
  c_phone      varchar(15),
  c_acctbal    number(12,2),
  c_mktsegment varchar(10),
@@ -144,7 +143,7 @@ SELECT
 	c_custkey
 	, c_name
 	, c_address
-	, c_nationkey
+	, iso2_code
 	, c_phone
 	, c_acctbal
 	, c_mktsegment
@@ -153,8 +152,11 @@ SELECT
 	, 'sys 1'
 FROM snowflake_sample_data.tpch_sf10.customer c 
 INNER JOIN current_load l  ON c.c_custkey = l.custkey
+INNER JOIN src_nation n ON c.c_nationkey = n.n_nationkey 
 )
 ;
+
+
 
 
 
@@ -199,6 +201,7 @@ SELECT  'customer' as tbl , count(distinct load_dts) as loads,  COUNT(*) cnt FRO
 GROUP BY 1 ;
 
 
+
 --------------------------------------------------------------------
 -- create views for loading the Raw Vault
 --------------------------------------------------------------------
@@ -214,7 +217,7 @@ SELECT
      , MD5(UPPER(ARRAY_TO_STRING(ARRAY_CONSTRUCT( 
                                               NVL(TRIM(c_name)       ,'x')
                                             , NVL(TRIM(c_address)    ,'x')              
-                                            , NVL(TRIM(c_nationkey)  ,'x')                 
+                                            , NVL(TRIM(iso2_code)  ,'x')                 
                                             , NVL(TRIM(c_phone)      ,'x')            
                                             , NVL(TRIM(c_acctbal)    ,'x')               
                                             , NVL(TRIM(c_mktsegment) ,'x')                 
@@ -274,8 +277,37 @@ CREATE OR REPLACE TABLE hub_order
 , o_orderkey              number         NOT NULL               
 , load_dts                timestamp_ntz  NOT NULL
 , rec_src                 varchar        NOT NULL
+
 , CONSTRAINT pk_hub_order                PRIMARY KEY(md5_hub_order)
 );                                     
+
+
+
+-- create the ref table
+
+CREATE OR REPLACE TABLE ref_nation 
+( 
+  iso2_code	            varchar (2)  NOT NULL
+, n_nationkey           number 		 NOT NULL
+, n_regionkey           number 		 NOT NULL
+, n_name                varchar
+, n_comment             varchar
+, load_dts              timestamp_ntz   NOT NULL
+, rec_src               varchar         NOT NULL
+
+, CONSTRAINT pk_ref_nation PRIMARY KEY (iso2_code)
+, CONSTRAINT ak_ref_nation UNIQUE (n_nationkey)   
+)
+AS 
+SELECT 
+	   iso2_code
+	 , n_nationkey
+     , n_regionkey
+     , n_name
+     , n_comment
+     , load_dts
+     , rec_src     
+FROM L0_src.src_nation;
 
 
 -- create the sats
@@ -291,12 +323,13 @@ CREATE OR REPLACE TABLE sat_customer
 , c_acctbal              number
 , c_mktsegment           varchar    
 , c_comment              varchar
-, nationkey              number
+, iso2_code              varchar(2)		NOT NULL
 , hash_diff              varchar(32)  	NOT NULL
 , rec_src                varchar  		NOT NULL  
 
 , CONSTRAINT pk_sat_customer     		PRIMARY KEY(md5_hub_customer, load_dts)
-, CONSTRAINT fk_sat_customer     		FOREIGN KEY(md5_hub_customer) REFERENCES hub_customer
+, CONSTRAINT fk_sat_customer_hcust  	FOREIGN KEY(md5_hub_customer) REFERENCES hub_customer
+, CONSTRAINT fk_set_customer_rnation	FOREIGN KEY(iso2_code) REFERENCES ref_nation  
 );                                     
 
 
@@ -320,7 +353,7 @@ CREATE OR REPLACE TABLE sat_order
 , CONSTRAINT fk_sat_order FOREIGN KEY(md5_hub_order) REFERENCES hub_order
 );   
 
--- create the links
+-- create the link
 
 CREATE OR REPLACE TABLE lnk_customer_order
 (
@@ -337,30 +370,7 @@ CREATE OR REPLACE TABLE lnk_customer_order
 
 
 
--- create the ref table
 
-CREATE OR REPLACE TABLE ref_nation 
-( 
-  iso2_code	            varchar (2)  NOT NULL
-, nation_id             number 		 NOT NULL
-, region_id             number 		 NOT NULL
-, n_name                varchar
-, n_comment             varchar
-, load_dts              timestamp_ntz   NOT NULL
-, rec_src               varchar         NOT NULL
-
-, CONSTRAINT pk_ref_nation PRIMARY KEY (nation_id)   
-)
-AS 
-SELECT 
-	   iso2_code
-	 , n_nationkey
-     , n_regionkey
-     , n_name
-     , n_comment
-     , load_dts
-     , rec_src     
-FROM L0_src.src_nation;
   
   
   
@@ -408,7 +418,7 @@ THEN INTO sat_customer
 , c_acctbal         
 , c_mktsegment      
 , c_comment         
-, nationkey        
+, iso2_code        
 , hash_diff         
 , rec_src              
 )  
@@ -422,7 +432,7 @@ VALUES
 , src_c_acctbal         
 , src_c_mktsegment      
 , src_c_comment         
-, src_nationkey        
+, src_iso2_code     
 , src_customer_hash_diff         
 , src_rec_src              
 )
@@ -430,7 +440,7 @@ SELECT md5_hub_customer    src_md5_hub_customer
      , c_custkey           src_c_custkey
      , c_name              src_c_name
      , c_address           src_c_address
-     , c_nationkey         src_nationkey
+     , iso2_code           src_iso2_code
      , c_phone             src_c_phone
      , c_acctbal           src_c_acctbal
      , c_mktsegment        src_c_mktsegment
@@ -556,11 +566,8 @@ EXECUTE TASK  customer_strm_tsk;
 EXECUTE TASK  order_strm_tsk ;
 
 -- load more source records to repeat the process
-EXECUTE  TASK  l0_src.load_daily_init;  
+EXECUTE  TASK  L0_src.load_daily_init;  
 
-SELECT * FROM REF_NATION ;
-
-SELECT * FROM l0_src.src_NATION ;
 
   SELECT *
   FROM table(information_schema.task_history())
