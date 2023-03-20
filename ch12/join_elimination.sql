@@ -1,3 +1,5 @@
+CREATE OR REPLACE SCHEMA rely_test;
+
 -- ************************************** region
 CREATE  TABLE region
 (
@@ -25,6 +27,25 @@ COMMENT = 'Country business groupings'
 AS 
 SELECT * FROM snowflake_sample_data.tpch_sf10.region
 WHERE R_REGIONKEY < 4
+;
+
+
+-- ************************************** location
+CREATE OR REPLACE  TABLE location
+(
+ location_id number(38,0) NOT NULL,
+ name        varchar(25) NOT NULL,
+ region_id   number(38,0) NOT NULL,
+ comment     varchar(152) COMMENT 'varchar(152) COMMENT ''VARCHAR(152)',
+ CONSTRAINT pk_location PRIMARY KEY ( location_id) RELY,
+ CONSTRAINT fk_location FOREIGN KEY ( region_id) REFERENCES region RELY,
+ CONSTRAINT ak_location_name UNIQUE ( name ) RELY
+)
+COMMENT = 'location assigned to 
+customer or supplier'
+AS 
+SELECT n_nationkey, n_name, n_regionkey, n_comment  
+FROM snowflake_sample_data.tpch_sf10.nation  
 ;
 
 
