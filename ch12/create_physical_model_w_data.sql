@@ -157,19 +157,3 @@ SELECT l_orderkey, l_partkey, l_suppkey, l_linenumber, l_quantity, l_extendedpri
 FROM snowflake_sample_data.tpch_sf10.lineitem  
 ;
 
-
--- ************************************** loyalty_customer
-CREATE  TABLE loyalty_customer
-(
- customer_id   number(38,0) NOT NULL,
- level         varchar NOT NULL COMMENT 'customer full name',
- type          varchar NOT NULL COMMENT 'loyalty tier: bronze, silver, or gold',
- points_amount number NOT NULL,
- comment       varchar COMMENT 'customer loyalty status calculated from sales order volume',
-
- CONSTRAINT pk_loyalty_customer PRIMARY KEY ( customer_id ) RELY,
- CONSTRAINT "1" FOREIGN KEY ( customer_id ) REFERENCES customer ( customer_id ) RELY
-)
-COMMENT = 'client loyalty program with gold, silver, bronze status'
---AS <loyalty customer business logic>
-;
