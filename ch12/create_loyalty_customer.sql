@@ -7,7 +7,7 @@ CREATE TABLE loyalty_customer
  comment       varchar COMMENT 'customer loyalty status calculated from sales order volume',
 
  CONSTRAINT pk_loyalty_customer PRIMARY KEY ( customer_id ) RELY,
- CONSTRAINT "1" FOREIGN KEY ( customer_id ) REFERENCES customer ( customer_id ) RELY
+ CONSTRAINT fk_loyalty_customer FOREIGN KEY ( customer_id ) REFERENCES customer ( customer_id ) RELY
 )
 COMMENT = 'client loyalty program with gold, silver, bronze status'
 AS 
