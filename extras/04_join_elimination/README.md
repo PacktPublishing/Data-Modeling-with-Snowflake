@@ -4,4 +4,4 @@ Declaring relational constraints has always been a modeling best practice for th
 
 The article highlights the benefits of declaring constraints in Snowflake and using them to save time and money when performing multidimensional analyses. The accompanying code is included in this repository.
 
-Check out (Constraining the Centipede](https://medium.com/snowflake/constraining-the-centipede-a9d2d7524c72), published in Snowflake's Medium blog.
+Check out [Constraining the Centipede](https://medium.com/snowflake/constraining-the-centipede-a9d2d7524c72), published in Snowflake's Medium blog.
