@@ -8,7 +8,7 @@
 --------------------------------------------------------------------
 -- setting up environments
 --------------------------------------------------------------------
-CREATE DATABASE data_vault;
+CREATE OR REPLACE DATABASE data_vault;
 
 CREATE OR REPLACE SCHEMA L0_src COMMENT = 'Schema for landing area objects';
 
@@ -20,6 +20,11 @@ CREATE OR REPLACE SCHEMA L1_rdv COMMENT = 'Schema for Raw Vault objects';
 --------------------------------------------------------------------
 
 USE SCHEMA L0_src;
+
+/*
+this exercise will pull from a single source system
+called 'sys 1'.    
+*/
 
 CREATE OR REPLACE TABLE src_nation
 (
@@ -219,12 +224,12 @@ SELECT
 -- source columns
 *   
 -- business key hash
-     , MD5(UPPER(TRIM(c_custkey)))  md5_hub_customer     
+     , SHA1_BINARY(UPPER(TRIM(c_custkey)))  hub_customer_hk     
 -- record hash diff     
-     , MD5(UPPER(ARRAY_TO_STRING(ARRAY_CONSTRUCT( 
+     , SHA1_BINARY(UPPER(ARRAY_TO_STRING(ARRAY_CONSTRUCT( 
                                               NVL(TRIM(c_name)       ,'x')
                                             , NVL(TRIM(c_address)    ,'x')              
-                                            , NVL(TRIM(iso2_code)  ,'x')                 
+                                            , NVL(TRIM(iso2_code)    ,'x')                 
                                             , NVL(TRIM(c_phone)      ,'x')            
                                             , NVL(TRIM(c_acctbal)    ,'x')               
                                             , NVL(TRIM(c_mktsegment) ,'x')                 
@@ -239,13 +244,13 @@ SELECT
 -- source columns
 *   
 -- business key hash
-     , MD5(UPPER(TRIM(o_orderkey)))             md5_hub_order
-     , MD5(UPPER(TRIM(o_custkey)))              md5_hub_customer  
-     , MD5(UPPER(ARRAY_TO_STRING(ARRAY_CONSTRUCT( NVL(TRIM(o_orderkey)       ,'x')
+     , SHA1_BINARY(UPPER(TRIM(o_orderkey)))             hub_order_hk
+     , SHA1_BINARY(UPPER(TRIM(o_custkey)))              hub_customer_hk  
+     , SHA1_BINARY(UPPER(ARRAY_TO_STRING(ARRAY_CONSTRUCT( NVL(TRIM(o_orderkey)       ,'x')
                                                         , NVL(TRIM(o_custkey)        ,'x')
-                                                        ), '^')))  AS md5_lnk_customer_order
+                                                        ), '^')))  AS lnk_customer_order_hk
 -- record hash diff                                                          
-     , MD5(UPPER(ARRAY_TO_STRING(ARRAY_CONSTRUCT( NVL(TRIM(o_orderstatus)    , 'x')         
+     , SHA1_BINARY(UPPER(ARRAY_TO_STRING(ARRAY_CONSTRUCT( NVL(TRIM(o_orderstatus)    , 'x')         
                                                         , NVL(TRIM(o_totalprice)     , 'x')        
                                                         , NVL(TRIM(o_orderdate)      , 'x')       
                                                         , NVL(TRIM(o_orderpriority)  , 'x')           
@@ -268,42 +273,41 @@ USE SCHEMA L1_rdv;
 
 -- create the hubs
 
-CREATE OR REPLACE TABLE hub_customer 
-( 
-  md5_hub_customer        varchar(32)    NOT NULL   
-, c_custkey               number         NOT NULL
-, load_dts                timestamp_ntz  NOT NULL
-, rec_src                 varchar        NOT NULL
+CREATE OR REPLACE TABLE hub_customer
+(
+ hub_customer_hk  binary NOT NULL,
+ c_custkey        number(38,0) NOT NULL,
+ load_dts         timestamp_ntz(9) NOT NULL,
+ rec_src          varchar(16777216) NOT NULL,
 
-, CONSTRAINT pk_hub_customer        PRIMARY KEY(md5_hub_customer)
-);                                     
+ CONSTRAINT pk_hub_customer PRIMARY KEY ( hub_customer_hk )
+);                                    
 
-CREATE OR REPLACE TABLE hub_order 
-( 
-  md5_hub_order           varchar(32)    NOT NULL   
-, o_orderkey              number         NOT NULL               
-, load_dts                timestamp_ntz  NOT NULL
-, rec_src                 varchar        NOT NULL
+CREATE OR REPLACE TABLE hub_order
+(
+ hub_order_hk  binary NOT NULL,
+ o_orderkey    number(38,0) NOT NULL,
+ load_dts      timestamp_ntz(9) NOT NULL,
+ rec_src       varchar(16777216) NOT NULL,
 
-, CONSTRAINT pk_hub_order                PRIMARY KEY(md5_hub_order)
-);                                     
-
+ CONSTRAINT pk_hub_order PRIMARY KEY ( hub_order_hk )
+);
 
 
 -- create the ref table
 
-CREATE OR REPLACE TABLE ref_nation 
-( 
-  iso2_code	            varchar (2)  NOT NULL
-, n_nationkey           number 		 NOT NULL
-, n_regionkey           number 		 NOT NULL
-, n_name                varchar
-, n_comment             varchar
-, load_dts              timestamp_ntz   NOT NULL
-, rec_src               varchar         NOT NULL
+CREATE OR REPLACE TABLE ref_nation
+(
+ iso2_code   varchar(2) NOT NULL,
+ n_nationkey number(38,0) NOT NULL,
+ n_regionkey number(38,0) NOT NULL,
+ n_name      varchar(16777216),
+ n_comment   varchar(16777216),
+ load_dts    timestamp_ntz(9) NOT NULL,
+ rec_src     varchar(16777216) NOT NULL,
 
-, CONSTRAINT pk_ref_nation PRIMARY KEY (iso2_code)
-, CONSTRAINT ak_ref_nation UNIQUE (n_nationkey)   
+ CONSTRAINT pk_ref_nation PRIMARY KEY ( iso2_code ),
+ CONSTRAINT ak_ref_nation UNIQUE 	  ( n_nationkey )
 )
 AS 
 SELECT 
@@ -320,68 +324,61 @@ FROM L0_src.src_nation;
 -- create the sats
 
 
-CREATE OR REPLACE TABLE sat_customer 
-( 
-  md5_hub_customer       varchar(32)    NOT NULL   
-, load_dts               timestamp_ntz  NOT NULL
-, c_name                 varchar
-, c_address              varchar
-, c_phone                varchar 
-, c_acctbal              number
-, c_mktsegment           varchar    
-, c_comment              varchar
-, iso2_code              varchar(2)		NOT NULL
-, hash_diff              varchar(32)  	NOT NULL
-, rec_src                varchar  		NOT NULL  
+CREATE OR REPLACE TABLE sat_sys1_customer
+(
+ hub_customer_hk  binary NOT NULL,
+ load_dts         timestamp_ntz(9) NOT NULL,
+ c_name           varchar(16777216),
+ c_address        varchar(16777216),
+ c_phone          varchar(16777216),
+ c_acctbal        number(38,0),
+ c_mktsegment     varchar(16777216),
+ c_comment        varchar(16777216),
+ iso2_code        varchar(2) NOT NULL,
+ hash_diff        binary NOT NULL,
+ rec_src          varchar(16777216) NOT NULL,
 
-, CONSTRAINT pk_sat_customer     		PRIMARY KEY(md5_hub_customer, load_dts)
-, CONSTRAINT fk_sat_customer_hcust  	FOREIGN KEY(md5_hub_customer) REFERENCES hub_customer
-, CONSTRAINT fk_set_customer_rnation	FOREIGN KEY(iso2_code) REFERENCES ref_nation  
-);                                     
-
-
+ CONSTRAINT pk_sat_sys1_customer PRIMARY KEY ( hub_customer_hk, load_dts ),
+ CONSTRAINT fk_sat_sys1_customer_hcust FOREIGN KEY ( hub_customer_hk ) REFERENCES hub_customer ( hub_customer_hk ),
+ CONSTRAINT fk_set_customer_rnation FOREIGN KEY ( iso2_code ) REFERENCES ref_nation ( iso2_code )
+);                               
 
 
-CREATE OR REPLACE TABLE sat_order 
-( 
-  md5_hub_order          varchar(32)    NOT NULL   
-, load_dts               timestamp_ntz  NOT NULL
-, o_orderstatus          varchar   
-, o_totalprice           number
-, o_orderdate            date
-, o_orderpriority        varchar
-, o_clerk                varchar    
-, o_shippriority         number
-, o_comment              varchar
-, hash_diff              varchar(32)    NOT NULL
-, rec_src                varchar        NOT NULL 
 
-, CONSTRAINT pk_sat_order PRIMARY KEY(md5_hub_order, load_dts)
-, CONSTRAINT fk_sat_order FOREIGN KEY(md5_hub_order) REFERENCES hub_order
+
+CREATE OR REPLACE TABLE sat_sys1_order
+(
+ hub_order_hk    binary NOT NULL,
+ load_dts        timestamp_ntz(9) NOT NULL,
+ o_orderstatus   varchar(16777216),
+ o_totalprice    number(38,0),
+ o_orderdate     date,
+ o_orderpriority varchar(16777216),
+ o_clerk         varchar(16777216),
+ o_shippriority  number(38,0),
+ o_comment       varchar(16777216),
+ hash_diff       binary NOT NULL,
+ rec_src         varchar(16777216) NOT NULL,
+
+ CONSTRAINT pk_sat_sys1_order PRIMARY KEY ( hub_order_hk, load_dts ),
+ CONSTRAINT fk_sat_sys1_order FOREIGN KEY ( hub_order_hk ) REFERENCES hub_order ( hub_order_hk )
 );   
 
 -- create the link
 
 CREATE OR REPLACE TABLE lnk_customer_order
 (
-  md5_lnk_customer_order  varchar(32)     NOT NULL   
-, md5_hub_customer        varchar(32) 
-, md5_hub_order           varchar(32) 
-, load_dts                timestamp_ntz   NOT NULL
-, rec_src                 varchar         NOT NULL  
+ lnk_customer_order_hk  binary NOT NULL,
+ hub_customer_hk        binary NOT NULL,
+ hub_order_hk           binary NOT NULL,
+ load_dts               timestamp_ntz(9) NOT NULL,
+ rec_src                varchar(16777216) NOT NULL,
 
-, CONSTRAINT pk_lnk_customer_order  PRIMARY KEY(md5_lnk_customer_order)
-, CONSTRAINT fk1_lnk_customer_order FOREIGN KEY(md5_hub_customer) REFERENCES hub_customer
-, CONSTRAINT fk2_lnk_customer_order FOREIGN KEY(md5_hub_order)    REFERENCES hub_order
+ CONSTRAINT pk_lnk_customer_order PRIMARY KEY  ( lnk_customer_order_hk ),
+ CONSTRAINT fk1_lnk_customer_order FOREIGN KEY ( hub_customer_hk ) REFERENCES hub_customer ( hub_customer_hk ),
+ CONSTRAINT fk2_lnk_customer_order FOREIGN KEY ( hub_order_hk )    REFERENCES hub_order ( hub_order_hk )
 );
 
-
-
-
-  
-  
-  
-  
   
  
 --------------------------------------------------------------------
@@ -398,26 +395,26 @@ SYSTEM$STREAM_HAS_DATA('L0_SRC.SRC_CUSTOMER_STRM')
 AS 
 INSERT ALL
 -- make sure record does not already exist in the hub
-WHEN (SELECT COUNT(1) FROM hub_customer tgt WHERE tgt.md5_hub_customer = src_md5_hub_customer) = 0
+WHEN (SELECT COUNT(1) FROM hub_customer tgt WHERE tgt.hub_customer_hk = src_hub_customer_hk) = 0
 THEN INTO hub_customer  
-( md5_hub_customer
+( hub_customer_hk
 , c_custkey
 , load_dts
 , rec_src
 )  
 VALUES 
-( src_md5_hub_customer
+( src_hub_customer_hk
 , src_c_custkey
 , src_load_dts
 , src_rec_src
 ) 
 -- make sure record does not already exist in the sat
-WHEN (SELECT COUNT(1) FROM sat_customer tgt WHERE tgt.md5_hub_customer = src_md5_hub_customer 
+WHEN (SELECT COUNT(1) FROM sat_sys1_customer tgt WHERE tgt.hub_customer_hk = src_hub_customer_hk 
 -- only insert if changes based on hash diff are detected
 AND tgt.hash_diff = src_customer_hash_diff) = 0
-THEN INTO sat_customer  
+THEN INTO sat_sys1_customer  
 (
-  md5_hub_customer  
+  hub_customer_hk  
 , load_dts              
 , c_name            
 , c_address         
@@ -431,7 +428,7 @@ THEN INTO sat_customer
 )  
 VALUES 
 (
-  src_md5_hub_customer  
+  src_hub_customer_hk  
 , src_load_dts              
 , src_c_name            
 , src_c_address         
@@ -443,7 +440,7 @@ VALUES
 , src_customer_hash_diff         
 , src_rec_src              
 )
-SELECT md5_hub_customer    src_md5_hub_customer
+SELECT hub_customer_hk    src_hub_customer_hk
      , c_custkey           src_c_custkey
      , c_name              src_c_name
      , c_address           src_c_address
@@ -467,26 +464,26 @@ WHEN
 AS 
 INSERT ALL
 -- make sure record does not already exist in the hub
-WHEN (SELECT COUNT(1) FROM hub_order tgt WHERE tgt.md5_hub_order = src_md5_hub_order) = 0
+WHEN (SELECT COUNT(1) FROM hub_order tgt WHERE tgt.hub_order_hk = src_hub_order_hk) = 0
 THEN INTO hub_order  
-( md5_hub_order
+( hub_order_hk
 , o_orderkey
 , load_dts
 , rec_src
 )  
 VALUES 
-( src_md5_hub_order
+( src_hub_order_hk
 , src_o_orderkey
 , src_load_dts
 , src_rec_src
 )  
 -- make sure record does not already exist in the sat
-WHEN (SELECT COUNT(1) FROM sat_order tgt WHERE tgt.md5_hub_order = src_md5_hub_order 
+WHEN (SELECT COUNT(1) FROM sat_sys1_order tgt WHERE tgt.hub_order_hk = src_hub_order_hk 
 -- only insert if changes based on hash diff are detected
 AND tgt.hash_diff = src_order_hash_diff) = 0
-THEN INTO sat_order  
+THEN INTO sat_sys1_order  
 (
-  md5_hub_order  
+  hub_order_hk  
 , load_dts              
 , o_orderstatus  
 , o_totalprice   
@@ -500,7 +497,7 @@ THEN INTO sat_order
 )  
 VALUES 
 (
-  src_md5_hub_order  
+  src_hub_order_hk  
 , src_load_dts              
 , src_o_orderstatus  
 , src_o_totalprice   
@@ -513,26 +510,26 @@ VALUES
 , src_rec_src              
 )
 -- make sure record does not already exist in the link
-WHEN (SELECT COUNT(1) FROM lnk_customer_order tgt WHERE tgt.md5_lnk_customer_order = src_md5_lnk_customer_order) = 0
+WHEN (SELECT COUNT(1) FROM lnk_customer_order tgt WHERE tgt.lnk_customer_order_hk = src_lnk_customer_order_hk) = 0
 THEN INTO lnk_customer_order  
 (
-  md5_lnk_customer_order  
-, md5_hub_customer              
-, md5_hub_order  
+  lnk_customer_order_hk  
+, hub_customer_hk              
+, hub_order_hk  
 , load_dts
 , rec_src              
 )  
 VALUES 
 (
-  src_md5_lnk_customer_order
-, src_md5_hub_customer
-, src_md5_hub_order  
+  src_lnk_customer_order_hk
+, src_hub_customer_hk
+, src_hub_order_hk  
 , src_load_dts              
 , src_rec_src              
 )
-SELECT md5_hub_order           src_md5_hub_order
-     , md5_lnk_customer_order  src_md5_lnk_customer_order
-     , md5_hub_customer        src_md5_hub_customer
+SELECT hub_order_hk           src_hub_order_hk
+     , lnk_customer_order_hk  src_lnk_customer_order_hk
+     , hub_customer_hk        src_hub_customer_hk
      , o_orderkey              src_o_orderkey
      , o_orderstatus           src_o_orderstatus  
      , o_totalprice            src_o_totalprice   
@@ -555,9 +552,9 @@ SELECT 'hub_customer' src, count(1) cnt FROM hub_customer
 UNION ALL
 SELECT 'hub_order', count(1) FROM hub_order
 UNION ALL
-SELECT 'sat_customer', count(1) FROM sat_customer
+SELECT 'sat_sys1_customer', count(1) FROM sat_sys1_customer
 UNION ALL
-SELECT 'sat_order', count(1) FROM sat_order
+SELECT 'sat_sys1_order', count(1) FROM sat_sys1_order
 UNION ALL
 SELECT 'ref_nation' src, count(1) cnt FROM ref_nation
 UNION ALL 
@@ -572,10 +569,11 @@ SELECT 'L0_src.src_order_strm_outbound', count(1) FROM l0_src.src_order_strm_out
 EXECUTE TASK  customer_strm_tsk;
 EXECUTE TASK  order_strm_tsk ;
 
--- load more source records to repeat the process
+-- load more source records and repeat the previous tasks to load them into the DV
 EXECUTE  TASK  L0_src.load_daily_init;  
 
 
+-- probe the task history programatically instead of using Snowsight UI
   SELECT *
   FROM table(information_schema.task_history())
   ORDER BY scheduled_time DESC;
