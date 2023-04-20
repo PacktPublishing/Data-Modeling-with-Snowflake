@@ -1,7 +1,7 @@
 /*
  * 
  * 
- * 2. Recovering physically deleted records
+ * 14.2. Recovering physically deleted records
  * 	  and performing a clean "logical" delete
  * 
  * 
