@@ -1,7 +1,7 @@
 /*
  * 
  * 
- * 3. Time banded facts using a Type 2 structure
+ * 13.3. Time banded facts using a Type 2 structure
  * 
  * 
  */
