@@ -6,6 +6,14 @@
  */
  
 --------------------------------------------------------------------
+-- setting up the warehouse
+--------------------------------------------------------------------
+CREATE WAREHOUSE IF NOT EXISTS demo_wh WAREHOUSE_SIZE = XSMALL;
+/* or replace 'demo_wh' in the script below 
+   with the name of an existing warehouse that 
+   you have access to. */
+ 
+--------------------------------------------------------------------
 -- setting up environments
 --------------------------------------------------------------------
 CREATE OR REPLACE DATABASE data_vault;
