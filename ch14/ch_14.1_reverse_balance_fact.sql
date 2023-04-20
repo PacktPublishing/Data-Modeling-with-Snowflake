@@ -1,11 +1,17 @@
-CREATE OR REPLACE SCHEMA ch14_facts;
-
 /*
  * 
- * 1. Reverse balance / mirror image fact table 
+ * 14.1 Reverse balance fact table
  * 
  * 
  */
+ 
+ 
+--------------------------------------------------------------------
+-- setting up the environment
+--------------------------------------------------------------------
+CREATE OR REPLACE SCHEMA ch14_facts;
+
+
 
 ---------------------------------------------------------------------------------------------------------------------
 -- Prepare the base tables
