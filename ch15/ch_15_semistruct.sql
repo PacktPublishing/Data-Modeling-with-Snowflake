@@ -282,8 +282,8 @@ CREATE OR REPLACE TABLE pirate
 
  CONSTRAINT pk_pirate_pirate_id PRIMARY KEY ( pirate_id ),
  CONSTRAINT ak_pirate_name UNIQUE ( name ),
- CONSTRAINT FK_54 FOREIGN KEY ( ship_id ) REFERENCES ch15.ship ( ship_id ),
- CONSTRAINT fk_pirate_crew_reports_to FOREIGN KEY ( crew_of ) REFERENCES ch15.pirate ( pirate_id )
+ CONSTRAINT FK_54 FOREIGN KEY ( ship_id ) REFERENCES ship ( ship_id ),
+ CONSTRAINT fk_pirate_crew_reports_to FOREIGN KEY ( crew_of ) REFERENCES pirate ( pirate_id )
 );
 
 
