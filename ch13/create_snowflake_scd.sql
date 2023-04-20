@@ -1,3 +1,19 @@
+/*
+ * 
+ * Slowly changing dimensions
+ * 
+ * 
+ */
+ 
+ 
+--------------------------------------------------------------------
+-- setting up the warehouse and environment
+--------------------------------------------------------------------
+CREATE WAREHOUSE IF NOT EXISTS demo_wh WAREHOUSE_SIZE = XSMALL;
+/* or replace 'demo_wh' in the script below 
+   with the name of an existing warehouse that 
+   you have access to. */
+
 CREATE OR REPLACE SCHEMA ch13_dims; 
 
 
@@ -55,7 +71,7 @@ AND MOD(customer_id,4)= 0 --load one quarter of existing recrods
 ;
 
 --create a clone of src_customer for future exercises
-CREATE OR REPLACE src_customer_bak CLONE src_customer; 
+CREATE OR REPLACE TABLE src_customer_bak CLONE src_customer; 
 
 
 CREATE OR REPLACE TASK load_src_customer
