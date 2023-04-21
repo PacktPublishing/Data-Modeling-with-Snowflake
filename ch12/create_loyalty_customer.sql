@@ -1,8 +1,8 @@
 CREATE TABLE loyalty_customer
 (
  customer_id   number(38,0) NOT NULL,
- level         varchar NOT NULL COMMENT 'customer full name',
- type          varchar NOT NULL COMMENT 'loyalty tier: bronze, silver, or gold',
+ level         varchar NOT NULL COMMENT 'loyalty points score',
+ type          varchar NOT NULL COMMENT 'early supporter or frequent shopper',
  points_amount number NOT NULL,
  comment       varchar COMMENT 'customer loyalty status calculated from sales order volume',
 
