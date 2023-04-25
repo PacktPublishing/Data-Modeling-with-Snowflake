@@ -1,4 +1,4 @@
-create database adventureworks; 
+create database demo_tpch; 
 
 create schema operations 
 WITH MANAGED ACCESS  
