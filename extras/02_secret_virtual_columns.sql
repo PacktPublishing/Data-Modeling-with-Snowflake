@@ -22,10 +22,10 @@ CREATE OR REPLACE TRANSIENT TABLE default_v_virtual_demo
  customer_id         number(38,0) NOT NULL,
  name                varchar NOT NULL,
  --create a virtual column as an expression
- v_Name				 varchar NOT NULL AS ('Hi, my name is '|| NAME), --'AS' syntax is not in documentation as-at 2023-04-08 but supported
+ v_Name		     varchar NOT NULL AS ('Hi, my name is '|| NAME), --'AS' syntax is not in documentation as-at 2023-04-08 but supported
  --create the same column as a DEFAULT and as a virtual column 
- load_dts 			 timestamp_ltz DEFAULT  CURRENT_TIMESTAMP(),
- v_Load_dts 		 timestamp_ltz AS CURRENT_TIMESTAMP() 
+ load_dts 	     timestamp_ltz DEFAULT  CURRENT_TIMESTAMP(),
+ v_Load_dts 	     timestamp_ltz AS CURRENT_TIMESTAMP() 
 )
 
 
@@ -69,10 +69,10 @@ AND TABLE_SCHEMA = 'SECRET_VIRTUAL_COLUMNS';
 CREATE OR REPLACE TRANSIENT TABLE customer
 (
 --add a message without using storage
- sys_message		 varchar AS 'Legacy data, do not use in reporting without remapping',
+ sys_message	     varchar AS 'Legacy data, do not use in reporting without remapping',
  customer_id         number(38,0) NOT NULL,
 --add basic business rules without duplicating data 
- legacy_cust_id		 varchar AS ('x' || customer_id) COMMENT 'legacy system included an X prefix for cust IDs',
+ legacy_cust_id	     varchar AS ('x' || customer_id) COMMENT 'legacy system included an X prefix for cust IDs',
  name                varchar NOT NULL,
  address             varchar NOT NULL,
  location_id         number(38,0) NOT NULL,
