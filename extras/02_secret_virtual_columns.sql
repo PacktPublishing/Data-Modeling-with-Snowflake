@@ -27,6 +27,7 @@ CREATE OR REPLACE TRANSIENT TABLE default_v_virtual_demo
  load_dts 	     timestamp_ltz DEFAULT  CURRENT_TIMESTAMP(),
  v_Load_dts 	     timestamp_ltz AS CURRENT_TIMESTAMP() 
 )
+;
 
 
 -- Insert data into the table
