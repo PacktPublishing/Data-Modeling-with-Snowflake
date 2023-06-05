@@ -1,8 +1,8 @@
 # Data Modeling with Snowflake
 
-<a href="<Packtpub book link>?utm_source=github&utm_medium=repository&utm_campaign=<13-P ISBN>"><img src="https://static.packt-cdn.com/products/<13-P ISBN>/cover/smaller" alt="Data Modeling with Snowflake" height="256px" align="right"></a>
+<a href="https://www.packtpub.com/product/data-modeling-with-snowflake/9781837634453"><img src="https://content.packt.com/B19467/cover_image_small.jpg" alt="Data Modeling with Snowflake" height="256px" align="right"></a>
 
-This is the code repository for [Data Modeling with Snowflake](<Packtpub book link>?utm_source=github&utm_medium=repository&utm_campaign=<13-P ISBN>), published by Packt.
+This is the code repository for [Data Modeling with Snowflake](https://www.packtpub.com/product/data-modeling-with-snowflake/9781837634453), published by Packt.
 
 **A practical guide to accelerating Snowflake development using universal data modeling techniques**
 
@@ -21,7 +21,7 @@ This book covers the following exciting features:
 * Work directly with pre-built recipes and examples
 * Apply modeling frameworks from Star to Data Vault
 
-If you feel this book is for you, get your [copy](https://www.amazon.com/dp/1837634459) today!
+If you feel this book is for you, get your [copy](https://www.amazon.com/Data-Modeling-Snowflake-accelerating-development/dp/1837634459) today!
 
 <a href="https://www.packtpub.com/?utm_source=github&utm_medium=banner&utm_campaign=GitHubBanner"><img src="https://raw.githubusercontent.com/PacktPublishing/GitHub/master/GitHub.png" alt="https://www.packtpub.com/" border="5" /></a>
 
@@ -30,8 +30,11 @@ All of the code is organized into folders.
 
 The code will look like the following:
 ```
-<Any code block from the book>
-
+-- Query the change tracking metadata to observe
+-- only inserts from the timestamp till now
+select * from myTable
+changes(information => append_only)
+at(timestamp => $cDts);
 ```
 
 **Following is what you need for this book:**
@@ -43,14 +46,14 @@ With the following software and hardware list you can run all code files present
 
 | Chapter  | Software required                                                                    | OS required                        |
 | -------- | -------------------------------------------------------------------------------------| -----------------------------------|
-|  1-18		  |   							                                            			  | Windows, Mac OS X, and Linux (Any) |
-|          |   																					  |                                    |
+|  1-18		  |   		Snowflake Data Cloud   | Windows, Mac OS X, and Linux (Any) |
+| 1-18         |   			SQL																		  |        Windows, Mac OS X, and Linux (Any)                             |
 
 
 ### Related products <Other books you may enjoy>
-* <Book name #1 from backmatter> [[Packt]](<Book link on Packtpub>) [[Amazon]](https://www.amazon.com/dp/<10P-ISBN>)
+*Data Modeling with Tableau [[Packt]](https://www.packtpub.com/product/data-modeling-with-tableau/9781803248028) [[Amazon]](https://www.amazon.in/Data-Modeling-Tableau-practical-building/dp/1803248025)
 
-* <Book name #2 from backmatter> [[Packt]](<Book link on Packtpub>) [[Amazon]](https://www.amazon.com/dp/<10P-ISBN>)
+*SQL Query Design Patterns and Best Practices [[Packt]](https://www.packtpub.com/product/sql-query-design-patterns-and-best-practices/9781837633289) [[Amazon]](https://www.amazon.com/Query-Design-Patterns-Best-Practices/dp/1837633282)
 
 ## Get to Know the Author(s)
 **Serge Gershkovich** is a data architect with an extensive background in designing and maintaining enterprise-scale data warehouse platforms and reporting solutions.
