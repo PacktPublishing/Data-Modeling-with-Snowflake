@@ -51,9 +51,9 @@ With the following software and hardware list you can run all code files present
 
 
 ### Related products <Other books you may enjoy>
-*Data Modeling with Tableau [[Packt]](https://www.packtpub.com/product/data-modeling-with-tableau/9781803248028) [[Amazon]](https://www.amazon.in/Data-Modeling-Tableau-practical-building/dp/1803248025)
+* Data Modeling with Tableau [[Packt]](https://www.packtpub.com/product/data-modeling-with-tableau/9781803248028) [[Amazon]](https://www.amazon.in/Data-Modeling-Tableau-practical-building/dp/1803248025)
 
-*SQL Query Design Patterns and Best Practices [[Packt]](https://www.packtpub.com/product/sql-query-design-patterns-and-best-practices/9781837633289) [[Amazon]](https://www.amazon.com/Query-Design-Patterns-Best-Practices/dp/1837633282)
+* SQL Query Design Patterns and Best Practices [[Packt]](https://www.packtpub.com/product/sql-query-design-patterns-and-best-practices/9781837633289) [[Amazon]](https://www.amazon.com/Query-Design-Patterns-Best-Practices/dp/1837633282)
 
 ## Get to Know the Author(s)
 **Serge Gershkovich** is a data architect with an extensive background in designing and maintaining enterprise-scale data warehouse platforms and reporting solutions.
