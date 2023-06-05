@@ -55,7 +55,7 @@ With the following software and hardware list you can run all code files present
 
 * SQL Query Design Patterns and Best Practices [[Packt]](https://www.packtpub.com/product/sql-query-design-patterns-and-best-practices/9781837633289) [[Amazon]](https://www.amazon.com/Query-Design-Patterns-Best-Practices/dp/1837633282)
 
-## Get to Know the Author(s)
+## Get to Know the Author
 **Serge Gershkovich** is a data architect with an extensive background in designing and maintaining enterprise-scale data warehouse platforms and reporting solutions.
 After a decade of working with the SAP ecosystem, Serge discovered Snowflake and never looked back. His passion for the Data Cloud has led to his creating educational content and being named a Snowflake Data Superhero. Serge is currently engaged as a developer advocate at SqlDBM, an online database modeling tool.
 Serge holds a B.Sc. degree in Information Systems from SUNY Stony Brook. Originally from Ukraine, he was raised in New York and has lived in London and Madrid.
