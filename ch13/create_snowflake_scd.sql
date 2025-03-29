@@ -365,6 +365,133 @@ EXECUTE TASK load_src_customer ;
 EXECUTE TASK tsk_load_dim_customer_t2 ;
 
 
+/*
+* type 2 using a dynamic table
+*/
+
+
+/*
+* for all window functions, partition by the business key, order by the system timestamp column
+* ex. ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY __ldts ASC) AS __rec_version,
+*/
+
+
+--reset the source table
+CREATE OR REPLACE TABLE src_customer CLONE src_customer_bak;
+
+
+CREATE OR REPLACE DYNAMIC TABLE dyn_customer_t2 
+TARGET_LAG = '10 MINUTE'
+WAREHOUSE = demo_wh
+AS
+SELECT
+    customer_id || '|' || __ldts AS dim_skey,
+    customer_id AS customer_id,
+    __ldts AS __from_dts,
+    IFF(
+        LEAD(__ldts) OVER (PARTITION BY customer_id ORDER BY __ldts ASC) IS NULL,  
+        '9999-12-31'::TIMESTAMP_NTZ,
+        DATEADD(NANOSECOND, -1, LEAD(__ldts) OVER (PARTITION BY customer_id ORDER BY __ldts ASC))
+    ) AS __to_dts,
+    name AS name,
+    address AS address,
+    location_id AS location_id,
+    phone AS phone,
+    account_balance_usd AS account_balance_usd,
+    market_segment AS market_segment,
+    comment AS comment,
+    __ldts AS __ldts,
+    ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY __ldts ASC) AS __rec_version,
+    IFF(__to_dts = '9999-12-31'::TIMESTAMP_NTZ, TRUE, FALSE) AS __is_latest,
+    FIRST_VALUE(__ldts) OVER (PARTITION BY customer_id ORDER BY __ldts ASC) AS __create_dts,
+    __ldts AS __update_dts,
+    LAST_VALUE(__ldts) OVER (PARTITION BY customer_id ORDER BY __ldts ASC) AS __last_update_dts,
+    SHA1_BINARY(
+        NVL(UPPER(TRIM(name::VARCHAR)), '^^') || '|' ||
+        NVL(UPPER(TRIM(location_id::VARCHAR)), '^^') || '|' ||
+        NVL(UPPER(TRIM(phone::VARCHAR)), '^^') || '|' ||
+        NVL(UPPER(TRIM(address::VARCHAR)), '^^') || '|' ||
+        NVL(UPPER(TRIM(account_balance_usd::VARCHAR)), '^^') || '|' ||
+        NVL(UPPER(TRIM(market_segment::VARCHAR)), '^^') || '|' ||
+        NVL(UPPER(TRIM(comment::VARCHAR)), '^^')
+    )::BINARY(20) AS __t2diff_hash,
+    IFNULL(
+        LAG(__t2diff_hash) OVER (PARTITION BY customer_id ORDER BY __ldts ASC),
+        SHA1_BINARY('*null*')
+    ) AS __prev_t2diff_hash      
+FROM src_customer 
+WHERE TRUE 
+-- do not include records without changes
+QUALIFY __t2diff_hash != __prev_t2diff_hash
+;
+
+--load more records
+EXECUTE TASK load_src_customer;
+
+
+/*
+* create dynamic type 2 table with type 1 columns
+*/
+
+
+--reset the source table
+CREATE OR REPLACE TABLE src_customer CLONE src_customer_bak;
+
+CREATE OR REPLACE DYNAMIC TABLE dyn_customer_t2n1 
+TARGET_LAG = '10 MINUTE'
+WAREHOUSE = demo_wh
+AS
+SELECT *, 
+--   system column window functions now need to iterate over the final result set, not the initial select
+  IFF(
+      LEAD(__ldts) OVER (PARTITION BY customer_id ORDER BY __ldts ASC) IS NULL,  
+      '9999-12-31'::TIMESTAMP_NTZ,
+      DATEADD(NANOSECOND, -1, LEAD(__ldts) OVER (PARTITION BY customer_id ORDER BY __ldts ASC))
+  ) AS __to_dts,
+  ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY __ldts ASC) AS __rec_version,
+  FIRST_VALUE(__ldts) OVER (PARTITION BY customer_id ORDER BY __ldts ASC) AS __create_dts,
+  LAST_VALUE(__ldts) OVER (PARTITION BY customer_id ORDER BY __ldts ASC) AS __last_update_dts,
+  IFF(__to_dts = '9999-12-31'::TIMESTAMP_NTZ, TRUE, FALSE) AS __is_latest
+FROM (
+    SELECT
+        customer_id || '|' || __ldts AS dim_skey,
+        customer_id AS customer_id,        
+        name AS name,
+        -- TYPE 1 FIELDS
+        LAST_VALUE(address) OVER (PARTITION BY customer_id ORDER BY __ldts ASC) AS address,
+        LAST_VALUE(location_id) OVER (PARTITION BY customer_id ORDER BY __ldts ASC) AS location_id,
+        LAST_VALUE(phone) OVER (PARTITION BY customer_id ORDER BY __ldts ASC) AS phone,
+        -- END TYPE 1 FIELDS 
+        account_balance_usd AS account_balance_usd,
+        market_segment AS market_segment,
+        comment AS comment,
+        __ldts AS __ldts,
+        __ldts AS __update_dts,
+        SHA1_BINARY(
+            NVL(UPPER(TRIM(name::VARCHAR)), '^^') || '|' ||
+            NVL(UPPER(TRIM(account_balance_usd::VARCHAR)), '^^') || '|' ||
+            NVL(UPPER(TRIM(market_segment::VARCHAR)), '^^') || '|' ||
+            NVL(UPPER(TRIM(comment::VARCHAR)), '^^')
+        )::BINARY(20) AS __t2diff_hash,
+        IFNULL(
+            LAG(__t2diff_hash) OVER (PARTITION BY customer_id ORDER BY __ldts ASC),
+            SHA1_BINARY('*null*')
+        ) AS __prev_t2diff_hash,      
+        SHA1_BINARY(
+            NVL(UPPER(TRIM(location_id::VARCHAR)), '^^') || '|' ||
+            NVL(UPPER(TRIM(phone::VARCHAR)), '^^') || '|' ||
+            NVL(UPPER(TRIM(address::VARCHAR)), '^^')
+        )::BINARY(20) AS __t1diff_hash,
+        __ldts AS __from_dts
+    FROM src_customer 
+    WHERE TRUE 
+    QUALIFY __t2diff_hash != __prev_t2diff_hash
+)
+;
+
+
+--load more records
+EXECUTE TASK load_src_customer;
 
 
 
